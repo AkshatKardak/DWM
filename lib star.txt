@@ -1,0 +1,135 @@
+-- Dimension: User
+CREATE TABLE dim_user (
+  user_id INT PRIMARY KEY,
+  age INT,
+  gender VARCHAR(10),
+  marital_status VARCHAR(15),
+  books_issued INT
+);
+
+-- Dimension: Time
+CREATE TABLE dim_time (
+  time_id INT PRIMARY KEY,
+  date_value DATE,
+  week INT,
+  month INT,
+  year INT
+);
+
+-- Dimension: Librarian
+CREATE TABLE dim_librarian (
+  librarian_id INT PRIMARY KEY,
+  name VARCHAR(50),
+  city VARCHAR(50),
+  salary DECIMAL(10,2),
+  working_time VARCHAR(20)  -- e.g., "Morning","Evening"
+);
+
+-- Dimension: Supplier
+CREATE TABLE dim_supplier (
+  supplier_id INT PRIMARY KEY,
+  name VARCHAR(50),
+  location VARCHAR(50),
+  no_of_copies INT,
+  duration VARCHAR(20)      -- e.g., "Annual","Quarterly"
+);
+
+-- Dimension: Book
+CREATE TABLE dim_book (
+  book_id INT PRIMARY KEY,
+  name VARCHAR(100),
+  author VARCHAR(100),
+  publication VARCHAR(100),
+  edition VARCHAR(20)
+);
+
+-- Fact table
+CREATE TABLE fact_issue (
+  fact_id INT PRIMARY KEY,
+  time_id INT,
+  user_id INT,
+  librarian_id INT,
+  book_id INT,
+  supplier_id INT,
+  -- a simple measure
+  quantity INT,
+  FOREIGN KEY (time_id) REFERENCES dim_time(time_id),
+  FOREIGN KEY (user_id) REFERENCES dim_user(user_id),
+  FOREIGN KEY (librarian_id) REFERENCES dim_librarian(librarian_id),
+  FOREIGN KEY (book_id) REFERENCES dim_book(book_id),
+  FOREIGN KEY (supplier_id) REFERENCES dim_supplier(supplier_id)
+);
+-- dim_user
+INSERT INTO dim_user VALUES
+(1, 22, 'Male', 'Single', 3),
+(2, 28, 'Female', 'Married', 5),
+(3, 19, 'Female', 'Single', 2),
+(4, 35, 'Male', 'Married', 7),
+(5, 41, 'Male', 'Married', 4);
+
+-- dim_time
+INSERT INTO dim_time VALUES
+(101, DATE '2025-10-01', 40, 10, 2025),
+(102, DATE '2025-10-05', 40, 10, 2025),
+(103, DATE '2025-10-12', 41, 10, 2025),
+(104, DATE '2025-11-03', 45, 11, 2025),
+(105, DATE '2025-11-15', 46, 11, 2025);
+
+-- dim_librarian
+INSERT INTO dim_librarian VALUES
+(11, 'Anita Rao', 'Pune', 42000.00, 'Morning'),
+(12, 'Vikram S', 'Mumbai', 51000.00, 'Evening'),
+(13, 'Sara K', 'Delhi', 47000.00, 'Morning'),
+(14, 'Rohan P', 'Bengaluru', 53000.00, 'Evening'),
+(15, 'Neha M', 'Pune', 45000.00, 'Morning');
+
+-- dim_supplier
+INSERT INTO dim_supplier VALUES
+(21, 'BookKart', 'Pune', 50, 'Annual'),
+(22, 'ReadHub', 'Mumbai', 30, 'Quarterly'),
+(23, 'PaperLeaf', 'Delhi', 40, 'Annual'),
+(24, 'EduSource', 'Bengaluru', 60, 'Annual'),
+(25, 'ShelfPlus', 'Pune', 25, 'Quarterly');
+
+-- dim_book
+INSERT INTO dim_book VALUES
+(31, 'DB Systems', 'Elmasri', 'Pearson', '7e'),
+(32, 'Clean Code', 'Robert C. Martin', 'Prentice Hall', '1e'),
+(33, 'Java Concurrency', 'Goetz', 'OReilly', '1e'),
+(34, 'Data Pipelines', 'Agus K', 'Manning', '1e'),
+(35, 'Deep Learning', 'Goodfellow', 'MIT Press', '1e');
+
+-- fact_issue (quantity = number of copies issued in that event)
+INSERT INTO fact_issue VALUES
+(1001, 101, 1, 11, 31, 21, 1),
+(1002, 102, 2, 12, 32, 22, 2),
+(1003, 103, 3, 11, 33, 23, 1),
+(1004, 104, 4, 14, 34, 24, 3),
+(1005, 105, 5, 15, 35, 25, 2);
+
+
+-- SLICE: View how many books were issued in a specific month (November) across all cities.
+WITH sliced AS (
+  SELECT f.*
+  FROM fact_issue f
+  JOIN dim_time dt ON f.time_id = dt.time_id
+  WHERE dt.month = 11
+)
+SELECT dt.month, SUM(s.quantity) AS total_books_issued
+FROM sliced s
+JOIN dim_time dt ON s.time_id = dt.time_id
+GROUP BY dt.month;
+
+
+
+-- DICE: Show total books issued by male users who are married (filter on multiple dimensions).
+WITH diced AS (
+  SELECT f.*
+  FROM fact_issue f
+  JOIN dim_user du ON f.user_id = du.user_id
+  WHERE du.gender = 'Male' AND du.marital_status = 'Married'
+)
+SELECT du.gender, du.marital_status, SUM(d.quantity) AS total_books_issued
+FROM diced d
+JOIN dim_user du ON d.user_id = du.user_id
+GROUP BY du.gender, du.marital_status;
