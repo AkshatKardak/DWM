@@ -1,8 +1,4 @@
-//Hotel Occupancy Snowflake schema
-
-CREATE DATABASE Hotel_Occ;
-USE Hotel_Occ;
-
+-- CUSTOMER TABLE
 CREATE TABLE Customer (
   CustomerID    INT PRIMARY KEY,
   Name          VARCHAR(100),
@@ -11,6 +7,7 @@ CREATE TABLE Customer (
   CustomerType  VARCHAR(20)
 );
 
+-- ROOM TYPE TABLE
 CREATE TABLE RoomType (
   RoomTypeID  INT PRIMARY KEY,
   BedType     VARCHAR(30),
@@ -19,6 +16,7 @@ CREATE TABLE RoomType (
   Capacity    INT
 );
 
+-- ROOM TABLE
 CREATE TABLE Room (
   RoomID       INT PRIMARY KEY,
   RoomTypeID   INT,
@@ -28,14 +26,7 @@ CREATE TABLE Room (
   CONSTRAINT fk_room_roomtype FOREIGN KEY (RoomTypeID) REFERENCES RoomType(RoomTypeID)
 );
 
-CREATE TABLE Hotel (
-  HotelID   INT PRIMARY KEY,
-  Name      VARCHAR(120),
-  Address   VARCHAR(150),
-  City      VARCHAR(60),
-  Country   VARCHAR(60)
-);
-
+-- HOTEL CITY TABLE
 CREATE TABLE HotelCity (
   HotelCityID     INT PRIMARY KEY,
   State           VARCHAR(60),
@@ -44,6 +35,18 @@ CREATE TABLE HotelCity (
   AirportDistance DECIMAL(10,2)
 );
 
+-- HOTEL TABLE (linked to HotelCity)
+CREATE TABLE Hotel (
+  HotelID      INT PRIMARY KEY,
+  Name         VARCHAR(120),
+  Address      VARCHAR(150),
+  City         VARCHAR(60),
+  Country      VARCHAR(60),
+  HotelCityID  INT,
+  CONSTRAINT fk_hotel_city FOREIGN KEY (HotelCityID) REFERENCES HotelCity(HotelCityID)
+);
+
+-- BOOKING TABLE
 CREATE TABLE Booking (
   BookingID   INT PRIMARY KEY,
   CheckInDate DATE,
@@ -52,6 +55,7 @@ CREATE TABLE Booking (
   Price       DECIMAL(12,2)
 );
 
+-- TIME DIMENSION TABLE
 CREATE TABLE TimeDim (
   TimeID INT PRIMARY KEY,
   Year   INT,
@@ -60,7 +64,7 @@ CREATE TABLE TimeDim (
   Day    INT
 );
 
--- FACT TABLE (five FKs)
+-- FACT TABLE
 CREATE TABLE FactTable (
   TimeID     INT,
   HotelID    INT,
@@ -96,19 +100,19 @@ INSERT INTO Room (RoomID, RoomTypeID, Floor, Description, StdRate) VALUES
 (4,4,'Fourth','Suite',2500.00),
 (5,5,'First','Deluxe',2000.00);
 
-INSERT INTO Hotel (HotelID, Name, Address, City, Country) VALUES
-(1,'Grand Palace','Main St','Mumbai','India'),
-(2,'Sea Breeze','Beach Rd','Chennai','India'),
-(3,'Sky High','Airport Rd','Delhi','India'),
-(4,'Hilltop Inn','Hill Rd','Shimla','India'),
-(5,'Urban Stay','Market St','Bangalore','India');
-
 INSERT INTO HotelCity (HotelCityID, State, Region, TouristRating, AirportDistance) VALUES
 (1,'Maharashtra','West','5-Star',20.50),
 (2,'Tamil Nadu','South','4-Star',18.70),
 (3,'Delhi','North','5-Star',10.20),
 (4,'Himachal','North','3-Star',25.00),
 (5,'Karnataka','South','4-Star',15.10);
+
+INSERT INTO Hotel (HotelID, Name, Address, City, Country, HotelCityID) VALUES
+(1,'Grand Palace','Main St','Mumbai','India',1),
+(2,'Sea Breeze','Beach Rd','Chennai','India',2),
+(3,'Sky High','Airport Rd','Delhi','India',3),
+(4,'Hilltop Inn','Hill Rd','Shimla','India',4),
+(5,'Urban Stay','Market St','Bangalore','India',5);
 
 INSERT INTO Booking (BookingID, CheckInDate, NoOfDays, RoomCount, Price) VALUES
 (1,'2025-10-01',2,1,3000.00),
@@ -124,17 +128,14 @@ INSERT INTO TimeDim (TimeID, Year, Month, Week, Day) VALUES
 (4,2025,10,40,4),
 (5,2025,11,41,5);
 
--- INSERTS: FACT (linked rows)
-INSERT INTO FactStay (TimeID, HotelID, RoomID, CustomerID, BookingID) VALUES
+INSERT INTO FactTable (TimeID, HotelID, RoomID, CustomerID, BookingID) VALUES
 (1,1,1,1,1),
 (2,2,2,2,2),
 (3,3,3,3,3),
 (4,4,4,4,4),
 (5,5,5,5,5);
 
-
-// Query - Display the details of all hotel stays for hotels located in Mumbai.
-Include the hotel name, customer name, room ID, check-in date, year, and month of stay.
+-- QUERY 1: Hotels located in Mumbai
 SELECT
   h.Name AS HotelName,
   c.Name AS CustomerName,
@@ -150,12 +151,7 @@ JOIN TimeDim t ON f.TimeID = t.TimeID
 JOIN Room r ON f.RoomID = r.RoomID
 WHERE h.City = 'Mumbai';
 
-
-// query : Show all hotel stays where:
-The hotel is in South region,
-The customer type is ‘Regular’, and
-The booking price is greater than 3000.
-
+-- QUERY 2: Hotels in South region, Regular customers, Price > 3000
 SELECT
   h.Name AS HotelName,
   hc.Region,
@@ -167,11 +163,13 @@ SELECT
   r.RoomTypeID
 FROM FactTable f
 JOIN Hotel h ON f.HotelID = h.HotelID
+JOIN HotelCity hc ON h.HotelCityID = hc.HotelCityID
 JOIN Customer c ON f.CustomerID = c.CustomerID
 JOIN Booking b ON f.BookingID = b.BookingID
 JOIN TimeDim t ON f.TimeID = t.TimeID
 JOIN Room r ON f.RoomID = r.RoomID
-JOIN HotelCity hc ON hc.HotelCityID = f.HotelID
 WHERE hc.Region = 'South'
   AND c.CustomerType = 'Regular'
   AND b.Price > 3000;
+
+
