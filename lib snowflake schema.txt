@@ -1,0 +1,165 @@
+-- Supplier_Location (normalized from Supplier_Dim)
+CREATE TABLE supplier_location (
+  supplier_location_id INT PRIMARY KEY,
+  name VARCHAR(20),
+  city VARCHAR(30),
+  state VARCHAR(20),
+  postal_code VARCHAR(10)
+);
+
+-- Supplier_Dim
+CREATE TABLE supplier_dim (
+  supplier_id INT PRIMARY KEY,
+  name VARCHAR(50),
+  location_id INT,
+  no_of_copies INT,
+  duration VARCHAR(12),
+  FOREIGN KEY (location_id) REFERENCES supplier_location(supplier_location_id)
+);
+
+-- Book_Publication (normalized from Book_Dim)
+CREATE TABLE book_publication (
+  publication_id INT PRIMARY KEY,
+  publisher_id INT,
+  name VARCHAR(50),
+  location VARCHAR(30),
+  year INT
+);
+
+-- Book_Dim
+CREATE TABLE book_dim (
+  book_id INT PRIMARY KEY,
+  name VARCHAR(50),
+  author VARCHAR(30),
+  publication_id INT,
+  edition VARCHAR(12),
+  FOREIGN KEY (publication_id) REFERENCES book_publication(publication_id)
+);
+
+-- User_Dim
+CREATE TABLE user_dim (
+  user_id INT PRIMARY KEY,
+  age INT,
+  gender VARCHAR(10),
+  books_issued INT,
+  marital_status VARCHAR(12)
+);
+
+-- Librarian_Dim
+CREATE TABLE librarian_dim (
+  librarian_id INT PRIMARY KEY,
+  name VARCHAR(30),
+  city VARCHAR(20),
+  salary DECIMAL(10,2),
+  working_time VARCHAR(12)
+);
+
+-- Time_Dim
+CREATE TABLE time_dim (
+  time_id INT PRIMARY KEY,
+  date_value DATE,
+  week INT,
+  year INT,
+  month INT
+);
+
+-- Fact table
+CREATE TABLE fact_issues (
+  fact_id INT PRIMARY KEY,
+  time_id INT,
+  user_id INT,
+  librarian_id INT,
+  book_id INT,
+  supplier_id INT,
+  copies INT,
+  FOREIGN KEY (time_id) REFERENCES time_dim(time_id),
+  FOREIGN KEY (user_id) REFERENCES user_dim(user_id),
+  FOREIGN KEY (librarian_id) REFERENCES librarian_dim(librarian_id),
+  FOREIGN KEY (book_id) REFERENCES book_dim(book_id),
+  FOREIGN KEY (supplier_id) REFERENCES supplier_dim(supplier_id)
+);
+
+-- supplier_location
+INSERT INTO supplier_location VALUES
+(1, 'EastBook', 'Pune', 'MH', '411007'),
+(2, 'ReadCo', 'Mumbai', 'MH', '400001'),
+(3, 'TextHub', 'Delhi', 'DL', '110001'),
+(4, 'BookKart', 'Bangalore', 'KA', '560001'),
+(5, 'EduZone', 'Chennai', 'TN', '600001');
+
+-- supplier_dim
+INSERT INTO supplier_dim VALUES
+(21, 'EastBook', 1, 12, 'Annual'),
+(22, 'ReadCo', 2, 10, 'Quarterly'),
+(23, 'TextHub', 3, 17, 'Annual'),
+(24, 'BookKart', 4, 20, 'Quarterly'),
+(25, 'EduZone', 5, 7, 'Monthly');
+
+-- book_publication
+INSERT INTO book_publication VALUES
+(100, 201, 'Pearson', 'Delhi', 2022),
+(101, 202, 'McGraw', 'Mumbai', 2021),
+(102, 203, 'OReilly', 'Pune', 2020),
+(103, 204, 'Packt', 'Bangalore', 2019),
+(104, 205, 'Elsevier', 'Chennai', 2021);
+
+-- book_dim
+INSERT INTO book_dim VALUES
+(31, 'Network+ Guide', 'Tamara Dean', 100, '7e'),
+(32, 'DB Design', 'Coronel', 101, '6e'),
+(33, 'Data Science', 'Joel', 102, '2e'),
+(34, 'AI Basics', 'Stuart', 103, '4e'),
+(35, 'ML 101', 'Peter Flach', 104, '1e');
+
+-- user_dim
+INSERT INTO user_dim VALUES
+(1, 21, 'Male', 3, 'Single'),
+(2, 24, 'Female', 4, 'Married'),
+(3, 19, 'Male', 2, 'Single'),
+(4, 28, 'Female', 1, 'Married'),
+(5, 41, 'Male', 5, 'Married');
+
+-- librarian_dim
+INSERT INTO librarian_dim VALUES
+(11, 'Anita Rao', 'Pune', 55000.00, 'Morning'),
+(12, 'Rakesh S', 'Mumbai', 60000.00, 'Evening'),
+(13, 'S. Gupta', 'Delhi', 58000.00, 'Morning'),
+(14, 'Priya V', 'Bangalore', 64000.00, 'Evening'),
+(15, 'Yashpal M', 'Chennai', 56000.00, 'Morning');
+
+-- time_dim
+INSERT INTO time_dim VALUES
+(110, DATE '2025-10-01', 40, 2025, 10),
+(111, DATE '2025-10-05', 40, 2025, 10),
+(112, DATE '2025-11-12', 43, 2025, 11),
+(113, DATE '2025-12-03', 49, 2025, 12),
+(114, DATE '2025-12-10', 50, 2025, 12);
+
+-- fact_issues
+INSERT INTO fact_issues VALUES
+(1001, 110, 1, 11, 31, 21, 1),
+(1002, 111, 2, 12, 32, 22, 3),
+(1003, 112, 3, 13, 33, 23, 2),
+(1004, 113, 4, 14, 34, 24, 4),
+(1005, 114, 5, 15, 35, 25, 5);
+
+-- query Aggregate total books issued at different Time granularity levels (month, then year).
+SELECT 
+  t.year,
+  t.month,
+  SUM(f.copies) AS total_issued
+FROM fact_issues f
+JOIN time_dim t ON f.time_id = t.time_id
+GROUP BY t.year, t.month WITH ROLLUP
+ORDER BY t.year, t.month;
+
+
+
+-- query Find the total number of books issued per year.
+SELECT 
+  t.year,
+  SUM(f.copies) AS total_issued
+FROM fact_issues f
+JOIN time_dim t ON f.time_id = t.time_id
+GROUP BY t.year
+ORDER BY t.year;
