@@ -1,0 +1,124 @@
+-- TIME DIMENSION
+CREATE TABLE TimeDim (
+Time_key VARCHAR(10) PRIMARY KEY,
+Day INT,
+Week INT,
+Month VARCHAR(10),
+Year INT
+);
+
+-- ITEM DIMENSION
+CREATE TABLE ItemDim (
+Item_key VARCHAR(10) PRIMARY KEY,
+Item_name VARCHAR(80),
+Brand VARCHAR(60),
+Type VARCHAR(40),
+Item_category VARCHAR(60)
+);
+
+-- BRANCH DIMENSION
+CREATE TABLE BranchDim (
+Branch_key VARCHAR(10) PRIMARY KEY,
+Branch_name VARCHAR(80),
+Branch_type VARCHAR(30),
+Manager VARCHAR(80),
+Open_date DATE
+);
+
+-- LOCATION DIMENSION
+CREATE TABLE LocationDim (
+Location_key VARCHAR(10) PRIMARY KEY,
+Street VARCHAR(120),
+City VARCHAR(60),
+Province_or_state VARCHAR(60),
+Postal_code VARCHAR(20)
+);
+
+-- TRANSACTION DIMENSION
+CREATE TABLE TransactionDim (
+Transaction_key VARCHAR(10) PRIMARY KEY,
+Transaction_date DATE,
+Payment_method VARCHAR(30),
+Amount DECIMAL(12,2),
+Quantity INT
+);
+
+-- FACT TABLE (STAR)
+CREATE TABLE SalesFact (
+Time_key VARCHAR(10),
+Item_key VARCHAR(10),
+Branch_key VARCHAR(10),
+Location_key VARCHAR(10),
+Transaction_key VARCHAR(10),
+CONSTRAINT fk_sf_time FOREIGN KEY (Time_key) REFERENCES TimeDim(Time_key),
+CONSTRAINT fk_sf_item FOREIGN KEY (Item_key) REFERENCES ItemDim(Item_key),
+CONSTRAINT fk_sf_branch FOREIGN KEY (Branch_key) REFERENCES BranchDim(Branch_key),
+CONSTRAINT fk_sf_loc FOREIGN KEY (Location_key) REFERENCES LocationDim(Location_key),
+CONSTRAINT fk_sf_tx FOREIGN KEY (Transaction_key) REFERENCES TransactionDim(Transaction_key)
+);
+
+-- INSERT 5 ROWS EACH
+
+INSERT INTO TimeDim (Time_key, Day, Week, Month, Year) VALUES
+('T1',1,1,'Jan',2025),
+('T2',5,1,'Jan',2025),
+('T3',10,2,'Feb',2025),
+('T4',15,3,'Mar',2025),
+('T5',20,4,'Mar',2025);
+
+INSERT INTO ItemDim (Item_key, Item_name, Brand, Type, Item_category) VALUES
+('I1','Phone','Xiaomi','Mobile','Electronics'),
+('I2','Laptop','HP','Notebook','Computers'),
+('I3','Shoes','Adidas','Sports','Footwear'),
+('I4','Watch','Titan','Analog','Accessories'),
+('I5','Bag','Wildcraft','Travel','Luggage');
+
+INSERT INTO BranchDim (Branch_key, Branch_name, Branch_type, Manager, Open_date) VALUES
+('B1','NorthMart','Retail','Ajit K','2022-01-15'),
+('B2','ElectroHub','Wholesale','Nidhi P','2023-02-01'),
+('B3','ShoePoint','Retail','Rahul S','2021-11-21'),
+('B4','AccessWorld','Retail','Deepika G','2020-05-20'),
+('B5','TravelNest','Retail','Amir C','2024-03-10');
+
+INSERT INTO LocationDim (Location_key, Street, City, Province_or_state, Postal_code) VALUES
+('L1','MG Road','Pune','MH','411001'),
+('L2','Park Lane','Mumbai','MH','400002'),
+('L3','Anna Salai','Chennai','TN','600005'),
+('L4','Brigade Rd','Bangalore','KA','560025'),
+('L5','Elgin Rd','Kolkata','WB','700017');
+
+INSERT INTO TransactionDim (Transaction_key, Transaction_date, Payment_method, Amount, Quantity) VALUES
+('X1','2025-01-01','UPI',12000.00,3),
+('X2','2025-02-05','Cash',34000.00,1),
+('X3','2025-03-10','Credit Card',5600.00,2),
+('X4','2025-03-15','Debit Card',2500.00,4),
+('X5','2025-03-20','UPI',9500.00,2);
+
+INSERT INTO SalesFact (Time_key, Item_key, Branch_key, Location_key, Transaction_key) VALUES
+('T1','I1','B1','L1','X1'),
+('T2','I2','B2','L2','X2'),
+('T3','I3','B3','L3','X3'),
+('T4','I4','B4','L4','X4'),
+('T5','I5','B5','L5','X5');
+
+
+
+-- SLICE: Show transactions only for 'Retail' branch type.
+SELECT
+sf.Time_key, sf.Item_key, sf.Branch_key, sf.Location_key, sf.Transaction_key,
+tx.Amount, tx.Payment_method
+FROM SalesFact sf
+JOIN BranchDim bd ON sf.Branch_key = bd.Branch_key
+JOIN TransactionDim tx ON sf.Transaction_key = tx.Transaction_key
+WHERE bd.Branch_type = 'Retail';
+
+-- DICE: Show all transactions for March where Payment Method is 'UPI' or 'Debit Card'.
+SELECT
+sf.Time_key, sf.Item_key, sf.Branch_key, sf.Location_key, sf.Transaction_key,
+td.Month, tx.Payment_method, tx.Amount
+FROM SalesFact sf
+JOIN TimeDim td ON sf.Time_key = td.Time_key
+JOIN TransactionDim tx ON sf.Transaction_key = tx.Transaction_key
+WHERE td.Month = 'Mar'
+AND tx.Payment_method IN ('UPI','Debit Card')
+ORDER BY tx.Amount DESC;
