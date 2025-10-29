@@ -135,41 +135,26 @@ INSERT INTO FactTable (TimeID, HotelID, RoomID, CustomerID, BookingID) VALUES
 (4,4,4,4,4),
 (5,5,5,5,5);
 
--- QUERY 1: Hotels located in Mumbai
+-- QUERY 1: Summarize the total booking price from the city level to the region level.
 SELECT
-  h.Name AS HotelName,
-  c.Name AS CustomerName,
-  r.RoomID,
-  b.CheckInDate,
-  t.Year,
-  t.Month
-FROM FactTable f
-JOIN Hotel h ON f.HotelID = h.HotelID
-JOIN Customer c ON f.CustomerID = c.CustomerID
-JOIN Booking b ON f.BookingID = b.BookingID
-JOIN TimeDim t ON f.TimeID = t.TimeID
-JOIN Room r ON f.RoomID = r.RoomID
-WHERE h.City = 'Mumbai';
-
--- QUERY 2: Hotels in South region, Regular customers, Price > 3000
-SELECT
-  h.Name AS HotelName,
   hc.Region,
-  c.Name AS CustomerName,
-  c.CustomerType,
-  b.Price,
-  b.CheckInDate,
-  t.Year,
-  r.RoomTypeID
+  SUM(b.Price) AS TotalBookingPrice
 FROM FactTable f
 JOIN Hotel h ON f.HotelID = h.HotelID
 JOIN HotelCity hc ON h.HotelCityID = hc.HotelCityID
-JOIN Customer c ON f.CustomerID = c.CustomerID
 JOIN Booking b ON f.BookingID = b.BookingID
-JOIN TimeDim t ON f.TimeID = t.TimeID
-JOIN Room r ON f.RoomID = r.RoomID
-WHERE hc.Region = 'South'
-  AND c.CustomerType = 'Regular'
-  AND b.Price > 3000;
+GROUP BY hc.Region;
+
+-- QUERY 2: Move from the summarized region level to a more detailed hotel level.
+SELECT
+  hc.Region,
+  h.Name AS HotelName,
+  SUM(b.Price) AS TotalBookingPrice
+FROM FactTable f
+JOIN Hotel h ON f.HotelID = h.HotelID
+JOIN HotelCity hc ON h.HotelCityID = hc.HotelCityID
+JOIN Booking b ON f.BookingID = b.BookingID
+GROUP BY hc.Region, h.Name
+ORDER BY hc.Region;
 
 
