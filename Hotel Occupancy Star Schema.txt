@@ -110,23 +110,32 @@ INSERT INTO FactTable VALUES
 (4, 4, 4, 4, 4),
 (5, 5, 5, 5, 5);
 
--- Query: Get the total booking price for each month (rollup from Day to Month level).(Roll Up)
+-- Slice: View total booking price for October only
 SELECT
   t.Month,
-  SUM(b.Price) AS TotalPrice
+  h.HotelName,
+  SUM(b.Price) AS TotalBookingPrice
 FROM FactTable f
-JOIN TimeDim t ON t.TimeID = f.TimeID
-JOIN BookingDim b ON b.BookingID = f.BookingID
-GROUP BY t.Month;
+JOIN TimeDim t ON f.TimeID = t.TimeID
+JOIN BookingDim b ON f.BookingID = b.BookingID
+JOIN HotelDim h ON f.HotelID = h.HotelID
+WHERE t.Month = 10
+GROUP BY t.Month, h.HotelName;
 
--- Query For October, show booking price per day (drill down Month → Day).(Drill Down)
+
+-- Dice: Analyze bookings for VIP customers in Mumbai during October
 SELECT
-  t.Month,
-  t.Day,
-  b.Price
+  h.City,
+  c.Name AS CustomerName,
+  b.Price,
+  t.Month
 FROM FactTable f
-JOIN TimeDim t ON t.TimeID = f.TimeID
-JOIN BookingDim b ON b.BookingID = f.BookingID
-WHERE t.Month = 10;
+JOIN HotelDim h ON f.HotelID = h.HotelID
+JOIN CustomerDim c ON f.CustomerID = c.CustomerID
+JOIN BookingDim b ON f.BookingID = b.BookingID
+JOIN TimeDim t ON f.TimeID = t.TimeID
+WHERE c.CustomerType = 'VIP'
+  AND h.City = 'Mumbai'
+  AND t.Month = 10;
 
 
