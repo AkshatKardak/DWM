@@ -1,4 +1,5 @@
 ## Hierarchical Clustering
+# ---- Hierarchical Clustering (Manual Implementation) ----
 import matplotlib.pyplot as plt
 import numpy as np
 from scipy.cluster.hierarchy import dendrogram
@@ -7,17 +8,18 @@ from scipy.cluster.hierarchy import dendrogram
 def euclidean_distance(p1, p2):
     return np.sqrt((p1[0] - p2[0])**2 + (p1[1] - p2[1])**2)
 
-# ---- User Input ----
-n = int(input("Enter number of data points: "))
-points = []
-for i in range(n):
-    x, y = map(float, input(f"Enter x y for point {i+1}: ").split())
-    points.append([x, y])
+# ---- Sample Data ----
+points = np.array([
+    [1, 1],
+    [1.5, 1.5],
+    [5, 5],
+    [3, 4],
+    [4.5, 4.5]
+])
+n = len(points)
+k = 2  # Desired number of clusters
 
-points = np.array(points)
-k = int(input("Enter desired number of clusters: "))
-
-# ---- Manual Agglomerative Clustering (single linkage) ----
+# ---- Manual Agglomerative Clustering (Single Linkage) ----
 clusters = [[i] for i in range(n)]
 cluster_ids = list(range(n))
 next_cluster_id = n
@@ -44,16 +46,9 @@ while len(clusters) > 1:
     merge_history.append((left_id, right_id, min_dist, new_size))
 
     # Remove merged clusters
-    if merge_i > merge_j:
-        clusters.pop(merge_i)
-        cluster_ids.pop(merge_i)
-        clusters.pop(merge_j)
-        cluster_ids.pop(merge_j)
-    else:
-        clusters.pop(merge_j)
-        cluster_ids.pop(merge_j)
-        clusters.pop(merge_i)
-        cluster_ids.pop(merge_i)
+    for idx in sorted([merge_i, merge_j], reverse=True):
+        clusters.pop(idx)
+        cluster_ids.pop(idx)
 
     # Add new cluster
     clusters.append(new_cluster)
@@ -80,6 +75,7 @@ for label_idx, cid in enumerate(sorted_clusters, start=1):
     for pt in cluster_map[cid]:
         labels[pt] = label_idx
 
+# ---- Print Cluster Assignments ----
 print("\nCluster assignments:")
 for idx, lab in enumerate(labels, start=1):
     print(f"Point {idx} ({points[idx-1][0]}, {points[idx-1][1]}) -> Cluster {lab}")
@@ -101,13 +97,14 @@ for i in range(n):
     plt.scatter(points[i, 0], points[i, 1],
                 color=colors((labels[i]-1) % 10),
                 s=80, edgecolor='k')
-    plt.text(points[i, 0]+0.02, points[i, 1]+0.02, f"P{i+1}", fontsize=9)
+    plt.text(points[i, 0]+0.05, points[i, 1]+0.05, f"P{i+1}", fontsize=9)
 plt.title(f"Points colored by cluster (k={k})")
 plt.xlabel("x")
 plt.ylabel("y")
 plt.grid(True, alpha=0.3)
 plt.axis('equal')
 plt.show()
+
 
 
 # Enter number of data points: 5
