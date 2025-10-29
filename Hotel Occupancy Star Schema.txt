@@ -1,7 +1,6 @@
-Hotel Occupancy Star Schema 
+-- Hotel Occupancy Star Schema 
 
-CREATE DATABASE Hotel_Occ_Star;
-USE Hotel_Occ_Star;
+
 
 -- Hotel Dimension
 CREATE TABLE HotelDim (
@@ -120,7 +119,7 @@ JOIN TimeDim t ON t.TimeID = f.TimeID
 JOIN BookingDim b ON b.BookingID = f.BookingID
 GROUP BY t.Month;
 
---Query For October, show booking price per day (drill down Month → Day).(Drill Down)
+-- Query For October, show booking price per day (drill down Month → Day).(Drill Down)
 SELECT
   t.Month,
   t.Day,
@@ -129,4 +128,5 @@ FROM FactTable f
 JOIN TimeDim t ON t.TimeID = f.TimeID
 JOIN BookingDim b ON b.BookingID = f.BookingID
 WHERE t.Month = 10;
+
 
