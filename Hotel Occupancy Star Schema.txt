@@ -1,0 +1,132 @@
+Hotel Occupancy Star Schema 
+
+CREATE DATABASE Hotel_Occ_Star;
+USE Hotel_Occ_Star;
+
+-- Hotel Dimension
+CREATE TABLE HotelDim (
+  HotelID   INT PRIMARY KEY,
+  HotelName VARCHAR(100),
+  Address   VARCHAR(100),
+  City      VARCHAR(60),
+  Country   VARCHAR(60)
+);
+
+-- Room Dimension
+CREATE TABLE RoomDim (
+  RoomID      INT PRIMARY KEY,
+  Type        VARCHAR(40),
+  Floor       VARCHAR(20),
+  Description VARCHAR(100),
+  StdRate     DECIMAL(10,2)
+);
+
+-- Time Dimension
+CREATE TABLE TimeDim (
+  TimeID INT PRIMARY KEY,
+  Year   INT,
+  Month  INT,
+  Week   INT,
+  Day    INT
+);
+
+-- Customer Dimension
+CREATE TABLE CustomerDim (
+  CustomerID   INT PRIMARY KEY,
+  Name         VARCHAR(100),
+  Email        VARCHAR(120),
+  Phone        VARCHAR(20),
+  CustomerType VARCHAR(20)
+);
+
+-- Booking Dimension
+CREATE TABLE BookingDim (
+  BookingID   INT PRIMARY KEY,
+  CheckInDate DATE,
+  CustomerID  INT,
+  NoOfDays    INT,
+  RoomCount   INT,
+  Price       DECIMAL(12,2)
+);
+
+-- Fact Table
+CREATE TABLE FactTable (
+  TimeID     INT,
+  HotelID    INT,
+  RoomID     INT,
+  CustomerID INT,
+  BookingID  INT,
+  FOREIGN KEY (TimeID)     REFERENCES TimeDim(TimeID),
+  FOREIGN KEY (HotelID)    REFERENCES HotelDim(HotelID),
+  FOREIGN KEY (RoomID)     REFERENCES RoomDim(RoomID),
+  FOREIGN KEY (CustomerID) REFERENCES CustomerDim(CustomerID),
+  FOREIGN KEY (BookingID)  REFERENCES BookingDim(BookingID)
+);
+
+-- Insert HotelDim
+INSERT INTO HotelDim VALUES
+(1, 'Grand Palace', 'Main St', 'Mumbai', 'India'),
+(2, 'Sea Breeze', 'Beach Rd', 'Chennai', 'India'),
+(3, 'Sky High', 'Airport Rd', 'Delhi', 'India'),
+(4, 'Hilltop Inn', 'Hill Rd', 'Shimla', 'India'),
+(5, 'Urban Stay', 'Market St', 'Bangalore', 'India');
+
+-- Insert RoomDim
+INSERT INTO RoomDim VALUES
+(1, 'Double', 'First', 'Sea View', 1500.00),
+(2, 'Single', 'Second', 'City View', 1200.00),
+(3, 'Suite', 'Third', 'Executive suite', 2500.00),
+(4, 'Deluxe', 'Fourth', 'Deluxe room', 2000.00),
+(5, 'Family', 'First', 'Family-friendly', 1700.00);
+
+-- Insert TimeDim
+INSERT INTO TimeDim VALUES
+(1, 2025, 10, 40, 1),
+(2, 2025, 10, 40, 2),
+(3, 2025, 10, 40, 3),
+(4, 2025, 10, 41, 4),
+(5, 2025, 11, 42, 5);
+
+-- Insert CustomerDim
+INSERT INTO CustomerDim VALUES
+(1, 'John Doe', 'john@example.com', '1234567890', 'VIP'),
+(2, 'Jane Smith', 'jane@example.com', '2345678901', 'Regular'),
+(3, 'Amit Gupta', 'amit@example.com', '3456789012', 'Corporate'),
+(4, 'Priya Patel', 'priya@example.com', '4567890123', 'VIP'),
+(5, 'Sara Lee', 'sara@example.com', '5678901234', 'Regular');
+
+-- Insert BookingDim
+INSERT INTO BookingDim VALUES
+(1, '2025-10-01', 1, 2, 1, 3000.00),
+(2, '2025-10-02', 2, 1, 2, 2400.00),
+(3, '2025-10-03', 3, 2, 1, 2500.00),
+(4, '2025-10-04', 4, 1, 1, 2500.00),
+(5, '2025-11-05', 5, 2, 2, 3700.00);
+
+-- Insert FactTable
+INSERT INTO FactTable VALUES
+(1, 1, 1, 1, 1),
+(2, 2, 2, 2, 2),
+(3, 3, 3, 3, 3),
+(4, 4, 4, 4, 4),
+(5, 5, 5, 5, 5);
+
+-- Query: Get the total booking price for each month (rollup from Day to Month level).(Roll Up)
+SELECT
+  t.Month,
+  SUM(b.Price) AS TotalPrice
+FROM FactTable f
+JOIN TimeDim t ON t.TimeID = f.TimeID
+JOIN BookingDim b ON b.BookingID = f.BookingID
+GROUP BY t.Month;
+
+--Query For October, show booking price per day (drill down Month → Day).(Drill Down)
+SELECT
+  t.Month,
+  t.Day,
+  b.Price
+FROM FactTable f
+JOIN TimeDim t ON t.TimeID = f.TimeID
+JOIN BookingDim b ON b.BookingID = f.BookingID
+WHERE t.Month = 10;
+
